@@ -9,6 +9,10 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
+
+import javax.sql.DataSource;
 
 @Configuration
 public class SecurityConfigTest extends WebSecurityConfigurerAdapter {
@@ -16,6 +20,15 @@ public class SecurityConfigTest extends WebSecurityConfigurerAdapter {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private DataSource dataSource;
+
+    @Bean
+    public PersistentTokenRepository persistentTokenRepository() {
+        JdbcTokenRepositoryImpl jdbcTokenRepository = new JdbcTokenRepositoryImpl();
+        jdbcTokenRepository.setDataSource(dataSource);
+        return jdbcTokenRepository;
+    }
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
@@ -24,12 +37,15 @@ public class SecurityConfigTest extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    PasswordEncoder password(){
+    PasswordEncoder password() {
         return new BCryptPasswordEncoder();
     }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+        //退出
+        http.logout().logoutUrl("/logout").logoutSuccessUrl("/test/hello").permitAll();
+
         http.exceptionHandling().accessDeniedPage("/unauth.html");//自定义403页面
 
         http.formLogin()
@@ -37,11 +53,14 @@ public class SecurityConfigTest extends WebSecurityConfigurerAdapter {
                 .loginProcessingUrl("/user/login")
                 .defaultSuccessUrl("/test/index").permitAll()
                 .and().authorizeRequests()
-                .antMatchers("/","/test/hello","/user/login").permitAll()
+                .antMatchers("/", "/test/hello", "/user/login").permitAll()
 //                .antMatchers("/test/index").hasAuthority("admins")
 //                .antMatchers("/test/index").hasAnyAuthority("admins,manager")
-                .antMatchers("/test/index").hasRole("sale1")
+                .antMatchers("/test/index").hasRole("sale")
                 .anyRequest().authenticated()
+                .and().rememberMe().tokenRepository(persistentTokenRepository())
+                .tokenValiditySeconds(60)//有效时长60s
+                .userDetailsService(userDetailsService)
                 .and().csrf().disable();//关闭csrf保护
     }
 }

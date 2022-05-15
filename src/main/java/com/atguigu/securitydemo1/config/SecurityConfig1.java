@@ -1,4 +1,4 @@
-//package com.atguigu.securitydemo1.config;
+package com.atguigu.securitydemo1.config;//package com.atguigu.securitydemo1.config;
 //
 //import org.springframework.context.annotation.Bean;
 //import org.springframework.context.annotation.Configuration;
